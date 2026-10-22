@@ -7,6 +7,7 @@ use std::{
         prelude::{Read, Seek},
     },
 };
+mod app;
 
 use ratatui::{
     crossterm::event::{
@@ -28,6 +29,8 @@ use ratatui::{
     },
 };
 use rodio::{Player, buffer::SamplesBuffer};
+
+use crate::app::App;
 
 struct BinaryReader<R> {
     inner: R,
@@ -88,6 +91,7 @@ impl<R: Read + Seek> BinaryReader<R> {
         Ok(current >= end)
     }
 }
+
 #[derive(Debug, Clone)]
 struct Signal {
     samples: Vec<f64>,
@@ -223,181 +227,13 @@ fn read_wav<R: Read + Seek>(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut reader = BinaryReader::new(File::open("./Beethoven - Für Elise.wav")?);
-    let signal = read_wav(&mut reader)?;
-    let new = signal.crop_seconds(0.0, 5.0);
-    let new = generate_signal(440.0, 44100, 1.0);
-
-    let sink_handle = rodio::DeviceSinkBuilder::open_default_sink()?;
-    let mut player: Option<rodio::Player> = None;
-
-    ratatui::run(|terminal| {
-        'mainloop: loop {
-            let position = player
-                .as_ref()
-                .map(|p| p.get_pos())
-                .unwrap_or(std::time::Duration::ZERO);
-            let current_seconds = position.as_secs_f64();
-
-            terminal.draw(|frame| render(frame, &new, current_seconds))?;
-            if event::poll(std::time::Duration::from_millis(5))? {
-                if let Event::Key(key) = event::read()? {
-                    if key.kind != KeyEventKind::Press {
-                        continue;
-                    }
-
-                    match key.code {
-                        event::KeyCode::Char('q') => break 'mainloop Ok::<(), Error>(()),
-                        event::KeyCode::Char(' ') => {
-                            if let Some(sink) = &player {
-                                if !sink.empty() {
-                                    if sink.is_paused() {
-                                        sink.play();
-                                    } else {
-                                        sink.pause();
-                                    }
-                                    continue;
-                                }
-                            }
-
-                            let samples: Vec<f32> =
-                                new.samples.iter().map(|&sample| sample as f32).collect();
-
-                            let source = SamplesBuffer::new(
-                                NonZero::new(1).unwrap(),
-                                NonZero::new(new.sample_rate).unwrap(),
-                                samples,
-                            );
-
-                            let sink = Player::connect_new(sink_handle.mixer());
-                            sink.append(source);
-                            player = Some(sink);
-                        }
-                        event::KeyCode::Char('s') => {
-                            if let Some(sink) = player.take() {
-                                sink.stop();
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-            }
-        }
-    })?;
+    let mut reader = BinaryReader::new(File::open(
+        std::env::args().nth(1).ok_or("usage: viz <file.wav>")?,
+    )?);
+    let signal = read_wav(&mut reader)?.crop_seconds(0.0, 5.0);
+    let mut app = App::new(signal)?;
+    ratatui::run(|terminal| app.run(terminal))?;
     Ok(())
-}
-fn render(frame: &mut Frame, signal: &Signal, current_seconds: f64) {
-    let layout = Layout::vertical([Constraint::Length(5), Constraint::Fill(1)]).spacing(1);
-    let [top, main] = frame.area().layout(&layout);
-
-    let sample_count = signal.samples.len();
-    let duration = sample_count as f64 / signal.sample_rate as f64;
-
-    let table = Table::new(
-        [
-            Row::new([
-                "Sample rate".to_string(),
-                format!("{} Hz", signal.sample_rate),
-            ]),
-            Row::new(["Length".to_string(), format!("{:.2}s", duration)]),
-            Row::new(["Samples".to_string(), format!("{}", sample_count)]),
-        ],
-        [
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-            Constraint::Percentage(34),
-        ],
-    )
-    .block(
-        Block::default()
-            .title("Audio information")
-            .borders(Borders::ALL)
-            .border_set(symbols::border::ROUNDED)
-            .dark_gray(),
-    );
-    frame.render_widget(table, top);
-    render_chart(frame, main, signal, current_seconds);
-}
-fn render_chart(frame: &mut Frame, area: Rect, signal: &Signal, current_seconds: f64) {
-    let sample_count = signal.samples.len();
-
-    // Approximate the number of horizontal points the terminal can display.
-    let buckets = (area.width as usize)
-        .saturating_sub(10)
-        .max(1)
-        .min(sample_count);
-
-    let bucket_size = sample_count.div_ceil(buckets);
-    let mut data = Vec::with_capacity(buckets * 2);
-
-    for start in (0..sample_count).step_by(bucket_size) {
-        let end = (start + bucket_size).min(sample_count);
-        let samples = &signal.samples[start..end];
-
-        let (min_offset, &min_value) = samples
-            .iter()
-            .enumerate()
-            .min_by(|a, b| a.1.total_cmp(b.1))
-            .unwrap();
-
-        let (max_offset, &max_value) = samples
-            .iter()
-            .enumerate()
-            .max_by(|a, b| a.1.total_cmp(b.1))
-            .unwrap();
-
-        // Keep the extrema in chronological order.
-        if min_offset < max_offset {
-            data.push(((start + min_offset) as f64, min_value));
-            data.push(((start + max_offset) as f64, max_value));
-        } else if max_offset < min_offset {
-            data.push(((start + max_offset) as f64, max_value));
-            data.push(((start + min_offset) as f64, min_value));
-        } else {
-            data.push(((start + min_offset) as f64, min_value));
-        }
-    }
-
-    let waveform = Dataset::default()
-        .marker(Marker::Braille)
-        .graph_type(GraphType::Area)
-        .data(&data)
-        .green();
-    let block = Block::new()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::ROUNDED)
-        .dark_gray()
-        .padding(Padding::proportional(2))
-        .title("Waveform");
-    let x = (current_seconds * signal.sample_rate as f64)
-        .clamp(0.0, sample_count.saturating_sub(1) as f64);
-
-    let progress = vec![(x, -0.5), (x, 0.5)];
-    let line = Dataset::default()
-        .marker(Marker::Custom('|'))
-        .graph_type(Line)
-        .data(&progress)
-        .white();
-    let chart = Chart::new(vec![waveform, line])
-        .x_axis(
-            Axis::default()
-                .title("Sample")
-                .bounds([0.0, sample_count.saturating_sub(1) as f64])
-                .green()
-                .labels([
-                    "0".to_string(),
-                    (sample_count.saturating_sub(1) as f64).to_string(),
-                ]),
-        )
-        .y_axis(
-            Axis::default()
-                .title("Amplitude")
-                .bounds([-1.0, 1.0])
-                .labels(["-0.5", "0", "0.5"])
-                .green(),
-        )
-        .block(block);
-    frame.render_widget(chart, area);
 }
 
 fn generate_signal(frequency: f64, sample_rate: u32, duration: f64) -> Signal {
