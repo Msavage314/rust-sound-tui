@@ -1,38 +1,19 @@
-use core::{f64::consts::PI, fmt::write, num::NonZero};
+mod app;
+mod views;
+
+use core::f64::consts::PI;
 use std::{
     collections::HashMap,
-    fs::{File, read},
+    fs::File,
     io::{
-        self, BufReader, Error, SeekFrom,
+        self, SeekFrom,
         prelude::{Read, Seek},
     },
 };
-mod app;
-
-use ratatui::{
-    crossterm::event::{
-        self,
-        Event::{self, Key},
-        KeyEvent, KeyEventKind,
-    },
-    prelude::{
-        Alignment, Color, Constraint, Frame, Layout, Rect, Span, Style, Stylize,
-        symbols::{
-            self,
-            Marker::{self},
-        },
-    },
-    widgets::{
-        Axis, Block, Borders, Chart, Dataset,
-        GraphType::{self, Line},
-        Padding, Paragraph, Row, Table,
-    },
-};
-use rodio::{Player, buffer::SamplesBuffer};
 
 use crate::app::App;
 
-struct BinaryReader<R> {
+pub struct BinaryReader<R> {
     inner: R,
 }
 impl<R: Read + Seek> BinaryReader<R> {
@@ -93,12 +74,12 @@ impl<R: Read + Seek> BinaryReader<R> {
 }
 
 #[derive(Debug, Clone)]
-struct Signal {
+pub struct Signal {
     samples: Vec<f64>,
     sample_rate: u32,
 }
 impl Signal {
-    fn crop(&self, start: usize, end: usize) -> Self {
+    pub fn crop(&self, start: usize, end: usize) -> Self {
         assert!(start <= end, "start must be <= end");
         assert!(end <= self.samples.len(), "crop range out of bounds");
 
@@ -167,7 +148,7 @@ fn read_wav<R: Read + Seek>(
 ) -> Result<Signal, Box<dyn std::error::Error>> {
     // Different wav file formats.
     let riff_id = reader.read_chars(4)?;
-    let file_size = reader.read_chars(4)?;
+    let _file_size = reader.read_chars(4)?;
     let wave_id = reader.read_chars(4)?;
     // to verify the integritry of wav files, all wav files begin with RIFF and WAVE
     assert!(riff_id == "RIFF" && wave_id == "WAVE", "Invalid .wav file");
@@ -196,7 +177,7 @@ fn read_wav<R: Read + Seek>(
     println!("{}", format_code);
     if format_code == FormatCode::WAVE_FORMAT_EXETENSIBLE {
         reader.skip(8)?;
-        let format_code = reader.read_u16_le()?;
+        let _format_code = reader.read_u16_le()?;
     }
 
     // +4 to skip the first 4 bytes which are just chunk id
@@ -230,7 +211,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut reader = BinaryReader::new(File::open(
         std::env::args().nth(1).ok_or("usage: viz <file.wav>")?,
     )?);
-    let signal = read_wav(&mut reader)?.crop_seconds(0.0, 5.0);
+    let signal = generate_signal(440.0, 44100, 1.0).crop_seconds(0.0, 5.0);
     let mut app = App::new(signal)?;
     ratatui::run(|terminal| app.run(terminal))?;
     Ok(())
