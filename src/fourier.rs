@@ -97,10 +97,7 @@
 //!
 //!
 use crate::{Signal, utils::Complex};
-use core::{
-    f64::consts::TAU,
-    ops::{Add, Mul},
-};
+use core::f64::consts::TAU;
 use rayon::prelude::*;
 use std::vec;
 
@@ -160,7 +157,8 @@ pub fn fourier_transform(signal: &Signal) -> Vec<Frequency> {
 
 /// Computes the Fast Fourier Transform (FFT).
 /// The length of the data must be a power of two
-pub fn fft(data: &[Complex]) -> Vec<Complex> {
+/// https://www.desmos.com/calculator/rbvzt8sckq
+fn fft(data: &[Complex]) -> Vec<Complex> {
     let n = data.len();
 
     // Base case. a one element DFT is already complete.
@@ -188,7 +186,7 @@ pub fn fft(data: &[Complex]) -> Vec<Complex> {
     }
     return result;
 }
-
+/// See module doc comment and also https://www.desmos.com/calculator/rbvzt8sckq
 pub fn fft_signal(signal: &Signal) -> Vec<Frequency> {
     let sample_count = signal.samples.len();
     if sample_count == 0 {

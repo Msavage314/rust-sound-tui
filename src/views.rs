@@ -6,11 +6,7 @@ use ratatui::{
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Padding},
 };
 
-use crate::{
-    Signal,
-    app::PlaybackState,
-    fourier::{fft_signal, fourier_transform},
-};
+use crate::{Signal, app::PlaybackState, fourier::fft_signal};
 
 /// represents the different views that the TUI app can provide
 /// More information is underneath each one
@@ -201,7 +197,11 @@ impl SpectrumView {
             .marker(Marker::Braille);
 
         let chart = Chart::new(vec![data])
-            .block(Block::bordered().title("Spectrum"))
+            .block(
+                Block::bordered()
+                    .title("Spectrum")
+                    .border_set(symbols::border::ROUNDED),
+            )
             .x_axis(
                 Axis::default()
                     .title("Frequency (Hz)")
