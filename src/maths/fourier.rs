@@ -96,7 +96,7 @@
 //!
 //!
 //!
-use crate::{Signal, utils::Complex};
+use crate::{Signal, maths::utils::Complex};
 use core::f64::consts::TAU;
 use rayon::prelude::*;
 use std::vec;

@@ -1,3 +1,4 @@
+pub mod views;
 use core::{error::Error, num::NonZero, time::Duration};
 use std::io;
 
@@ -18,7 +19,7 @@ use rodio::{Player, buffer::SamplesBuffer};
 
 use crate::{
     Signal,
-    views::{SpectrumView, View, Views, WaveformView},
+    app::views::{SpectrumView, View, Views, WaveformView},
 };
 
 pub struct PlaybackState {

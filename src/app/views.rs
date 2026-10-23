@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Padding},
 };
 
-use crate::{Signal, app::PlaybackState, fourier::fft_signal};
+use crate::{Signal, app::PlaybackState, maths::fourier::fft_signal};
 
 /// represents the different views that the TUI app can provide
 /// More information is underneath each one
@@ -119,7 +119,7 @@ impl WaveformView {
             .marker(Marker::Braille)
             .graph_type(GraphType::Area)
             .data(&self.data)
-            .green();
+            .light_cyan();
 
         let progress = vec![(x, -1.0), (x, 1.0)];
 
@@ -134,15 +134,15 @@ impl WaveformView {
                 Axis::default()
                     .title("Sample")
                     .bounds([0.0, last])
-                    .green()
-                    .labels(["0".to_string(), last.to_string()]),
+                    .labels(["0".to_string(), last.to_string()])
+                    .light_cyan(),
             )
             .y_axis(
                 Axis::default()
                     .title("Amplitude")
                     .bounds([-1.0, 1.0])
                     .labels(["-0.5", "0", "0.5"])
-                    .green(),
+                    .light_cyan(),
             )
             .block(
                 Block::new()
@@ -193,8 +193,8 @@ impl SpectrumView {
         let data = Dataset::default()
             .data(&self.data)
             .graph_type(GraphType::Bar)
-            .red()
-            .marker(Marker::Braille);
+            .marker(Marker::Braille)
+            .light_red();
 
         let chart = Chart::new(vec![data])
             .block(
@@ -207,14 +207,14 @@ impl SpectrumView {
                     .title("Frequency (Hz)")
                     .bounds([0.0, self.max_freq])
                     .labels(["0".to_string(), format!("{:.0}", self.max_freq)])
-                    .red(),
+                    .light_red(),
             )
             .y_axis(
                 Axis::default()
                     .title("Amplitude")
                     .bounds([0.0, self.max_amp])
                     .labels(["0".to_string(), format!("{:.2}", self.max_amp)])
-                    .red(),
+                    .light_red(),
             );
         frame.render_widget(chart, area);
     }
