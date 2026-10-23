@@ -6,7 +6,11 @@ use ratatui::{
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Padding},
 };
 
-use crate::{Signal, app::PlaybackState};
+use crate::{
+    Signal,
+    app::PlaybackState,
+    fourier::{fft_signal, fourier_transform},
+};
 
 /// represents the different views that the TUI app can provide
 /// More information is underneath each one
@@ -40,6 +44,7 @@ impl View {
 }
 pub struct Views {
     pub waveform: WaveformView,
+    pub spectrum: SpectrumView,
 }
 
 pub struct WaveformView {
@@ -106,6 +111,7 @@ impl WaveformView {
     ) {
         if signal.samples.is_empty() {
             frame.render_widget(Block::bordered().title("Waveform (empty"), area);
+            return;
         }
         if self.cached_width != area.width {
             self.rebuild(signal, area.width);
@@ -154,4 +160,62 @@ impl WaveformView {
     }
 }
 
-pub struct SpectrogramView {}
+pub struct SpectrumView {
+    data: Vec<(f64, f64)>,
+    max_freq: f64,
+    max_amp: f64,
+    computed: bool,
+}
+
+impl SpectrumView {
+    pub fn new() -> Self {
+        return Self {
+            data: Vec::new(),
+            max_freq: 1.0,
+            max_amp: 1.0,
+            computed: false,
+        };
+    }
+    /// Call when the signal (or later, the mix) changes.
+    #[allow(dead_code)]
+    pub fn invalidate(&mut self) {
+        self.computed = false;
+    }
+    pub fn render(&mut self, frame: &mut Frame, area: Rect, signal: &Signal) {
+        if !self.computed {
+            self.data = fft_signal(signal)
+                .iter()
+                // If your function returns the mirrored upper half too, drop it:
+                .filter(|f| f.frequency <= signal.sample_rate as f64 / 2.0)
+                .map(|f| (f.frequency, f.amplitude))
+                .collect();
+            self.max_freq = self.data.iter().map(|p| p.0).fold(0.0, f64::max).max(1.0);
+            self.max_amp = self.data.iter().map(|p| p.1).fold(0.0, f64::max).max(1e-9);
+            self.computed = true;
+        }
+
+        let data = Dataset::default()
+            .data(&self.data)
+            .graph_type(GraphType::Bar)
+            .red()
+            .marker(Marker::Braille);
+
+        let chart = Chart::new(vec![data])
+            .block(Block::bordered().title("Spectrum"))
+            .x_axis(
+                Axis::default()
+                    .title("Frequency (Hz)")
+                    .bounds([0.0, self.max_freq])
+                    .labels(["0".to_string(), format!("{:.0}", self.max_freq)])
+                    .red(),
+            )
+            .y_axis(
+                Axis::default()
+                    .title("Amplitude")
+                    .bounds([0.0, self.max_amp])
+                    .labels(["0".to_string(), format!("{:.2}", self.max_amp)])
+                    .red(),
+            );
+        frame.render_widget(chart, area);
+    }
+}

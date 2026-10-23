@@ -5,20 +5,20 @@ use ratatui::{
     DefaultTerminal,
     crossterm::event::{
         self, Event,
-        KeyCode::{self, Tab},
+        KeyCode::{self},
         KeyEventKind,
     },
     prelude::{
         Constraint, Frame, Layout, Rect, Style, Stylize,
-        symbols::{self, Marker},
+        symbols::{self},
     },
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Padding, Row, Table, Tabs},
+    widgets::{Block, Borders, Row, Table, Tabs},
 };
 use rodio::{Player, buffer::SamplesBuffer};
 
 use crate::{
     Signal,
-    views::{View, Views, WaveformView},
+    views::{SpectrumView, View, Views, WaveformView},
 };
 
 pub struct PlaybackState {
@@ -97,6 +97,7 @@ impl App {
             running: true,
             views: Views {
                 waveform: WaveformView::new(),
+                spectrum: SpectrumView::new(),
             },
         })
     }
@@ -156,21 +157,27 @@ impl App {
                 .views
                 .waveform
                 .render(frame, main, &self.signal, playback),
-            View::Spectrum | View::Spectrogram => {
+
+            View::Spectrum => {
+                self.views.spectrum.render(frame, main, &self.signal);
+            }
+            View::Spectrogram => {
                 frame.render_widget(Block::bordered().title("Not implemented yet"), main);
             }
         }
     }
     fn render_table(&self, frame: &mut Frame, area: Rect) {
         let sample_count = self.signal.samples.len();
-        let duration = sample_count as f64 / self.signal.sample_rate as f64;
         let table = Table::new(
             [
                 Row::new([
                     "Sample rate".to_string(),
                     format!("{} Hz", self.signal.sample_rate),
                 ]),
-                Row::new(["Length".to_string(), format!("{:.2}s", duration)]),
+                Row::new([
+                    "Length".to_string(),
+                    format!("{:.2}s", self.signal.duration()),
+                ]),
                 Row::new(["Samples".to_string(), format!("{}", sample_count)]),
             ],
             [

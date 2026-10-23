@@ -1,6 +1,7 @@
-mod app;
-mod views;
-
+pub mod app;
+pub mod fourier;
+pub mod utils;
+pub mod views;
 use core::f64::consts::PI;
 use std::{
     collections::HashMap,
@@ -11,7 +12,7 @@ use std::{
     },
 };
 
-use crate::app::App;
+use crate::{app::App, fourier::fft_signal};
 
 pub struct BinaryReader<R> {
     inner: R,
@@ -102,6 +103,26 @@ impl Signal {
             sample_rate: self.sample_rate,
         }
     }
+    fn duration(&self) -> f64 {
+        return self.samples.len() as f64 / self.sample_rate as f64;
+    }
+}
+impl core::ops::Add<Signal> for Signal {
+    type Output = Signal;
+    fn add(self, rhs: Signal) -> Self::Output {
+        assert!(self.sample_rate == rhs.sample_rate);
+        let new = self
+            .samples
+            .iter()
+            .zip(rhs.samples)
+            .map(|(a, b)| a + b)
+            .collect();
+
+        return Self {
+            samples: new,
+            sample_rate: self.sample_rate,
+        };
+    }
 }
 fn parse_pcm(bytes: &[u8], bit_depth: u16) -> f64 {
     match bit_depth {
@@ -136,10 +157,10 @@ fn parse_pcm(bytes: &[u8], bit_depth: u16) -> f64 {
 struct FormatCode {}
 impl FormatCode {
     const WAVE_FORMAT_EXETENSIBLE: u16 = 0xFFFE;
-    const WAVE_FORMAT_PCM: u16 = 0x0001;
-    const WAVE_FORMAT_IEEE_FLOAT: u16 = 0x0003;
-    const WAVE_FORMAT_ALAW: u16 = 0x0006;
-    const WAVE_FORMAT_MULAW: u16 = 0x0007;
+    const _WAVE_FORMAT_PCM: u16 = 0x0001;
+    const _WAVE_FORMAT_IEEE_FLOAT: u16 = 0x0003;
+    const _WAVE_FORMAT_ALAW: u16 = 0x0006;
+    const _WAVE_FORMAT_MULAW: u16 = 0x0007;
 }
 
 /// https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
@@ -211,19 +232,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut reader = BinaryReader::new(File::open(
         std::env::args().nth(1).ok_or("usage: viz <file.wav>")?,
     )?);
-    let signal = generate_signal(440.0, 44100, 1.0).crop_seconds(0.0, 5.0);
+    let signal = read_wav(&mut reader)
+        .expect("Failed to read wav file")
+        .crop_seconds(0.0, 4.0);
+    println!("generating signal");
+    let frequencies = fft_signal(&signal);
+    println!("finished");
+
     let mut app = App::new(signal)?;
     ratatui::run(|terminal| app.run(terminal))?;
+
     Ok(())
 }
 
-fn generate_signal(frequency: f64, sample_rate: u32, duration: f64) -> Signal {
+fn generate_signal(
+    frequency: f64,
+    sample_rate: u32,
+    duration: f64,
+    amplitude: f64,
+    phase: f64,
+) -> Signal {
     let num_samples = (sample_rate as f64 * duration) as usize;
 
     let samples = (0..num_samples)
         .map(|i| {
             let time = i as f64 / sample_rate as f64;
-            (time * 2.0 * PI * frequency).cos() * 0.5
+            (time * 2.0 * PI * frequency + phase).cos() * amplitude
         })
         .collect();
 
