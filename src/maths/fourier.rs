@@ -95,67 +95,25 @@
 //! The output gives the index of the lower frequency bin X[k] and the higher index output \(X[k + N/2]\)
 //!
 //!
-//!
+//! TODO
+//! - Clean up above
+//! - Optimise more
 use crate::{Signal, maths::utils::Complex};
 use core::f64::consts::TAU;
 use rayon::prelude::*;
 use std::vec;
 
+/// A *bin* storing frequency data about a waveform sinusoid
+
 #[derive(Debug, Clone, Copy)]
-pub struct Frequency {
+pub struct Bin {
     pub frequency: f64,
     pub phase: f64,
     pub amplitude: f64,
 }
 
-/// Performs the fourier transform
-///
-/// Check out this desmos graph
-/// https://www.desmos.com/calculator/rbvzt8sckq
-///
-pub fn fourier_transform(signal: &Signal) -> Vec<Frequency> {
-    // We want to test loads of different frequencies and see which ones line up with
-    // the signal.
-    const MAX_FREQUENCY: f64 = 20000.0;
-    let duration = signal.duration();
-    let step = 1.0 / duration;
-    let tests = (MAX_FREQUENCY / step) as usize;
-
-    (0..tests)
-        .into_par_iter()
-        .map(|test_index| {
-            let test_frequency = test_index as f64 * step;
-            let mut total = Complex::new(0.0, 0.0);
-            for (index, sample) in signal.samples.iter().enumerate() {
-                // T is how far we are around a imaginary circle.
-                // It has to be from 0 to 1
-                let t = index as f64 / signal.sample_rate as f64;
-                // Then we want an entire revolution of t going from 0 to 1
-                // to go fully around the circle, so this is the angle
-                let angle = TAU * t * test_frequency as f64;
-                // Find the point and add it to the total.
-                let p = Complex::new(angle.cos(), angle.sin());
-                total += p * *sample;
-            }
-            // Divide by total to find centre of mass (approximation of integration)
-            let sample_centre = total / signal.samples.len() as f64;
-            // distance to centre *2 as
-            // O -- c -- a
-            // if c is the centre, a is twice as far from O
-
-            let amplitude = sample_centre.abs() * 2.0;
-            let phase = -sample_centre.phase();
-
-            Frequency {
-                frequency: test_frequency as f64,
-                phase,
-                amplitude,
-            }
-        })
-        .collect()
-}
-
-/// Computes the Fast Fourier Transform (FFT).
+/// Computes the Fast Fourier Transform (FFT) from a set of complex numbers, and returns a set
+/// of complex numbers giving sinusoids that can sum to make the input
 /// The length of the data must be a power of two
 /// https://www.desmos.com/calculator/rbvzt8sckq
 fn fft(data: &[Complex]) -> Vec<Complex> {
@@ -175,19 +133,20 @@ fn fft(data: &[Complex]) -> Vec<Complex> {
     let even_fft = fft(&even);
     let odd_fft = fft(&odd);
     let mut result = vec![Complex::new(0.0, 0.0); n];
-    // combine the two smaller FFTs using butterflies
 
+    // combine the two smaller FFTs using butterflies
     for k in 0..n / 2 {
         let angle = -TAU * k as f64 / n as f64;
         let twiddle = Complex::new(angle.cos(), angle.sin());
         let rotated_odd = twiddle * odd_fft[k];
+
         result[k] = even_fft[k] + rotated_odd;
         result[k + n / 2] = even_fft[k] - rotated_odd;
     }
     return result;
 }
 /// See module doc comment and also https://www.desmos.com/calculator/rbvzt8sckq
-pub fn fft_signal(signal: &Signal) -> Vec<Frequency> {
+pub fn fft_signal(signal: &Signal) -> Vec<Bin> {
     let sample_count = signal.samples.len();
     if sample_count == 0 {
         return Vec::new();
@@ -221,8 +180,60 @@ pub fn fft_signal(signal: &Signal) -> Vec<Frequency> {
 
             let phase = value.phase();
 
-            Frequency {
+            Bin {
                 frequency,
+                phase,
+                amplitude,
+            }
+        })
+        .collect()
+}
+
+/// Performs the fourier transform.
+/// Do not use this function, apart from for testing / demonstration, as it is \(O(n^2))\ time complexity,
+/// so for standard sample rates of 10,000+ Hz and a few second long clips this will take forever.
+///
+/// Instead use `fft_signal` below, which uses the fast-fourier-transform
+///
+/// Check out this desmos graph
+/// https://www.desmos.com/calculator/rbvzt8sckq
+///
+#[deprecated(note = "Deprecated as it is extremely slow. Use `fft_signal` instead")]
+pub fn fourier_transform(signal: &Signal) -> Vec<Bin> {
+    // We want to test loads of different frequencies and see which ones line up with
+    // the signal.
+    const MAX_FREQUENCY: f64 = 20000.0;
+    let duration = signal.duration();
+    let step = 1.0 / duration;
+    let tests = (MAX_FREQUENCY / step) as usize;
+
+    (0..tests)
+        .into_par_iter()
+        .map(|test_index| {
+            let test_frequency = test_index as f64 * step;
+            let mut total = Complex::new(0.0, 0.0);
+            for (index, sample) in signal.samples.iter().enumerate() {
+                // T is how far we are around a imaginary circle.
+                // It has to be from 0 to 1
+                let t = index as f64 / signal.sample_rate as f64;
+                // Then we want an entire revolution of t going from 0 to 1
+                // to go fully around the circle, so this is the angle
+                let angle = TAU * t * test_frequency as f64;
+                // Find the point and add it to the total.
+                let p = Complex::new(angle.cos(), angle.sin());
+                total += p * *sample;
+            }
+            // Divide by total to find centre of mass (approximation of integration)
+            let sample_centre = total / signal.samples.len() as f64;
+            // distance to centre *2 as
+            // O -- c -- a
+            // if c is the centre, a is twice as far from O
+
+            let amplitude = sample_centre.abs() * 2.0;
+            let phase = -sample_centre.phase();
+
+            Bin {
+                frequency: test_frequency as f64,
                 phase,
                 amplitude,
             }

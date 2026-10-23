@@ -2,9 +2,10 @@ pub mod app;
 pub mod maths;
 pub mod signal;
 pub mod wav;
-use crate::maths::fourier::fft_signal;
+
 use crate::{
     app::App,
+    maths::fourier::fft_signal,
     signal::Signal,
     wav::{BinaryReader, read_wav},
 };
@@ -23,3 +24,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+// TODO
+// - Add new with top bar slider and adjustable frequency spacing allowing you to see the composition of frequencies through time

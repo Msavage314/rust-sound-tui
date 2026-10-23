@@ -1,6 +1,6 @@
 use core::f64::consts::PI;
 
-use crate::maths::fourier::Frequency;
+use crate::maths::fourier::Bin;
 
 /// A sound from a particular source. Contains a set of amplitude samples and the sampling rate
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ pub struct Signal {
     pub sample_rate: u32,
 }
 impl Signal {
-    pub fn from_frequencies(frequencies: &[Frequency]) -> Signal {
+    pub fn from_frequencies(frequencies: &[Bin]) -> Signal {
         let max = frequencies.iter().map(|f| f.amplitude).fold(0.0, f64::max);
         let threshold = max * 0.01; // keep bins within 40 dB of the peak
         let sample_rate = 44100;
