@@ -18,10 +18,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let signal = read_wav(&mut reader)
         .expect("Failed to read wav file")
         .crop_seconds(0.0, 4.0);
-    let fft = fft_signal(&signal);
 
-    let signal = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let mut app = App::new(signal)?;
+    let fft = fft_signal(&signal);
+    let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
+    let mut app = App::new(new)?;
     ratatui::run(|terminal| app.run(terminal))?;
 
     Ok(())

@@ -98,7 +98,10 @@
 //! TODO
 //! - Clean up above
 //! - Optimise more
-use crate::{Signal, maths::utils::Complex};
+use crate::{
+    Signal,
+    maths::utils::{Complex, I},
+};
 use core::f64::consts::TAU;
 use rayon::prelude::*;
 use std::vec;
@@ -211,7 +214,7 @@ pub fn fourier_transform(signal: &Signal) -> Vec<Bin> {
         .into_par_iter()
         .map(|test_index| {
             let test_frequency = test_index as f64 * step;
-            let mut total = Complex::new(0.0, 0.0);
+            let mut total = Complex::zero();
             for (index, sample) in signal.samples.iter().enumerate() {
                 // T is how far we are around a imaginary circle.
                 // It has to be from 0 to 1
@@ -220,7 +223,7 @@ pub fn fourier_transform(signal: &Signal) -> Vec<Bin> {
                 // to go fully around the circle, so this is the angle
                 let angle = TAU * t * test_frequency as f64;
                 // Find the point and add it to the total.
-                let p = Complex::new(angle.cos(), angle.sin());
+                let p = angle.cos() + angle.sin() * I;
                 total += p * *sample;
             }
             // Divide by total to find centre of mass (approximation of integration)
