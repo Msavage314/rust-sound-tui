@@ -103,15 +103,3 @@ impl core::ops::Add<Signal> for Signal {
         };
     }
 }
-impl core::ops::AddAssign<Signal> for Signal {
-    fn add_assign(&mut self, rhs: Signal) {
-        assert!(self.sample_rate == rhs.sample_rate);
-        assert_eq!(self.samples.len(), rhs.samples.len());
-        self.samples = self
-            .samples
-            .iter()
-            .zip(rhs.samples)
-            .map(|(a, b)| a + b)
-            .collect();
-    }
-}
