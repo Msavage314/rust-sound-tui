@@ -84,22 +84,3 @@ impl Signal {
         return self.samples.len() as f64 / self.sample_rate as f64;
     }
 }
-
-impl core::ops::Add<Signal> for Signal {
-    type Output = Signal;
-    fn add(self, rhs: Signal) -> Self::Output {
-        assert!(self.sample_rate == rhs.sample_rate);
-        assert_eq!(self.samples.len(), rhs.samples.len());
-        let new = self
-            .samples
-            .iter()
-            .zip(rhs.samples)
-            .map(|(a, b)| a + b)
-            .collect();
-
-        return Self {
-            samples: new,
-            sample_rate: self.sample_rate,
-        };
-    }
-}
