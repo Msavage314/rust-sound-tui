@@ -17,8 +17,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?);
     let signal = read_wav(&mut reader)
         .expect("Failed to read wav file")
-        .crop_seconds(0.0, 2.5);
-    let signal = Signal::from_frequencies(&fft_signal(&signal));
+        .crop_seconds(0.0, 4.0);
+    let fft = fft_signal(&signal);
+
+    let signal = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
     let mut app = App::new(signal)?;
     ratatui::run(|terminal| app.run(terminal))?;
 
@@ -27,3 +29,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // TODO
 // - Add new with top bar slider and adjustable frequency spacing allowing you to see the composition of frequencies through time
+// - Vastly speed up frequency addition

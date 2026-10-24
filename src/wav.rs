@@ -211,13 +211,12 @@ fn parse_pcm(bytes: &[u8], bit_depth: u16) -> f64 {
 ///
 /// Only [`WAVE_FORMAT_EXETENSIBLE`](Self::WAVE_FORMAT_EXETENSIBLE) is currently
 /// used by the decoder; the rest are listed for reference.
-struct FormatCode {}
-impl FormatCode {
-    const WAVE_FORMAT_EXETENSIBLE: u16 = 0xFFFE;
-    const _WAVE_FORMAT_PCM: u16 = 0x0001;
-    const _WAVE_FORMAT_IEEE_FLOAT: u16 = 0x0003;
-    const _WAVE_FORMAT_ALAW: u16 = 0x0006;
-    const _WAVE_FORMAT_MULAW: u16 = 0x0007;
+pub mod format_code {
+    pub const WAVE_FORMAT_EXTENSIBLE: u16 = 0xFFFE;
+    pub const _WAVE_FORMAT_PCM: u16 = 0x0001;
+    pub const _WAVE_FORMAT_IEEE_FLOAT: u16 = 0x0003;
+    pub const _WAVE_FORMAT_ALAW: u16 = 0x0006;
+    pub const _WAVE_FORMAT_MULAW: u16 = 0x0007;
 }
 
 // Parses a WAV file from `reader` into a mono [`Signal`].
@@ -300,7 +299,7 @@ pub fn read_wav<R: Read + Seek>(
     let bit_depth = reader.read_u16_le()?;
     let bytes_per_sample = bit_depth / 8;
     println!("{}", format_code);
-    if format_code == FormatCode::WAVE_FORMAT_EXETENSIBLE {
+    if format_code == format_code::WAVE_FORMAT_EXTENSIBLE {
         reader.skip(8)?;
         let _format_code = reader.read_u16_le()?;
     }
