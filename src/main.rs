@@ -5,7 +5,7 @@ pub mod wav;
 
 use crate::{
     app::App,
-    maths::fourier::fft_signal,
+    maths::fourier::{Bin, fft_signal},
     signal::Signal,
     wav::{BinaryReader, read_wav},
 };
@@ -21,7 +21,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let fft = fft_signal(&signal);
     //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let mut app = App::new(signal)?;
+    let app = App::new(Signal::sine(
+        Bin {
+            frequency: 440.0,
+            phase: 0.0,
+            amplitude: 0.1,
+        },
+        44100,
+        1.0,
+    ))?;
+    // let mut app = App::new(signal)?;
     ratatui::run(|terminal| app.run(terminal))?;
 
     Ok(())

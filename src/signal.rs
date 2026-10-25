@@ -83,4 +83,18 @@ impl Signal {
     pub fn duration(&self) -> f64 {
         return self.samples.len() as f64 / self.sample_rate as f64;
     }
+
+    /// Returns a pure sine wave
+    pub fn sine(bin: Bin, sample_rate: u32, duration: f64) -> Signal {
+        let n = (sample_rate as f64 * duration) as usize;
+
+        let samples = (0..n)
+            .map(|n| bin.amplitude * (bin.frequency * (n as f64 + bin.phase)).sin())
+            .collect();
+
+        return Signal {
+            samples: samples,
+            sample_rate: sample_rate,
+        };
+    }
 }
