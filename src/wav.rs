@@ -272,7 +272,7 @@ pub fn read_wav<R: Read + Seek>(
 ) -> Result<Signal, Box<dyn std::error::Error>> {
     // Different wav file formats.
     let riff_id = reader.read_chars(4)?;
-    let _file_size = reader.read_chars(4)?;
+    let _file_size = reader.read_u32_le()?;
     let wave_id = reader.read_chars(4)?;
     // to verify the integritry of wav files, all wav files begin with RIFF and WAVE
     assert!(riff_id == "RIFF" && wave_id == "WAVE", "Invalid .wav file");

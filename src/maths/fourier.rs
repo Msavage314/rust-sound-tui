@@ -192,6 +192,34 @@ pub fn fft_signal(signal: &Signal) -> Vec<Bin> {
         .collect()
 }
 
+/// STFFT ( short time fast fourier transform)
+pub fn stft(signal: &Signal, window: usize, hop: usize) -> Vec<Vec<f64>> {
+    assert!(window.is_power_of_two());
+    let samples = &signal.samples;
+
+    if samples.len() < window {
+        return Vec::new();
+    }
+    // Hann window: stops the hard frame edges from smearing energy across bins
+    let hann: Vec<f64> = (0..window)
+        .map(|i| 0.5 * (1.0 - (TAU * i as f64 / (window - 1) as f64).cos()))
+        .collect();
+
+    let starts: Vec<usize> = (0..=samples.len() - window).step_by(hop).collect();
+
+    starts
+        .into_par_iter()
+        .map(|start| {
+            let frame: Vec<Complex> = samples[start..start + window]
+                .iter()
+                .zip(&hann)
+                .map(|(s, w)| Complex::new(s * w, 0.0))
+                .collect();
+            fft(&frame)[..=window / 2].iter().map(|c| c.abs()).collect()
+        })
+        .collect()
+}
+
 /// Performs the fourier transform.
 /// Do not use this function, apart from for testing / demonstration, as it is \(O(n^2))\ time complexity,
 /// so for standard sample rates of 10,000+ Hz and a few second long clips this will take forever.

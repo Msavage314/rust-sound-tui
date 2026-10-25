@@ -10,16 +10,16 @@ use ratatui::{
         KeyEventKind,
     },
     prelude::{
-        Constraint, Frame, Layout, Rect, Style, Stylize,
+        Color, Constraint, Frame, Layout, Rect, Style, Stylize,
         symbols::{self},
     },
-    widgets::{Block, Borders, Row, Table, Tabs},
+    widgets::{Block, Borders, Padding, Row, Table, Tabs},
 };
 use rodio::{Player, buffer::SamplesBuffer};
 
 use crate::{
     Signal,
-    app::views::{SpectrumView, View, Views, WaveformView},
+    app::views::{SpectrogramView, SpectrumView, View, Views, WaveformView},
 };
 
 pub struct PlaybackState {
@@ -99,6 +99,7 @@ impl App {
             views: Views {
                 waveform: WaveformView::new(),
                 spectrum: SpectrumView::new(),
+                spectrogram: SpectrogramView::new(),
             },
         })
     }
@@ -142,28 +143,36 @@ impl App {
     }
 
     fn render(&mut self, frame: &mut Frame, playback: &PlaybackState) {
-        let [tabs_area, top, main] = frame.area().layout(&Layout::vertical([
+        let [tabs_area, main] = frame.area().layout(&Layout::vertical([
             Constraint::Length(3),
-            Constraint::Length(5),
+            Constraint::Fill(1),
+        ]));
+        let [side, main] = main.layout(&Layout::horizontal([
+            Constraint::Length(20),
             Constraint::Fill(1),
         ]));
         let tabs = Tabs::new(View::ALL.iter().map(|v| v.title()))
             .select(self.view as usize)
             .highlight_style(Style::new().bold().yellow())
-            .block(Block::bordered());
+            .block(Block::bordered().border_set(symbols::border::ROUNDED));
         frame.render_widget(tabs, tabs_area);
-        self.render_table(frame, top);
+        self.render_table(frame, side);
+        let block = self.view.block();
+        let inner = block.inner(main); // accounts for borders and padding
+        frame.render_widget(block, main);
         match self.view {
             View::Waveform => self
                 .views
                 .waveform
-                .render(frame, main, &self.signal, playback),
+                .render(frame, inner, &self.signal, playback),
 
             View::Spectrum => {
-                self.views.spectrum.render(frame, main, &self.signal);
+                self.views.spectrum.render(frame, inner, &self.signal);
             }
             View::Spectrogram => {
-                frame.render_widget(Block::bordered().title("Not implemented yet"), main);
+                self.views
+                    .spectrogram
+                    .render(frame, inner, &self.signal, playback);
             }
         }
     }
@@ -172,7 +181,7 @@ impl App {
         let table = Table::new(
             [
                 Row::new([
-                    "Sample rate".to_string(),
+                    "Rate".to_string(),
                     format!("{} Hz", self.signal.sample_rate),
                 ]),
                 Row::new([
@@ -181,18 +190,15 @@ impl App {
                 ]),
                 Row::new(["Samples".to_string(), format!("{}", sample_count)]),
             ],
-            [
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
-                Constraint::Percentage(34),
-            ],
+            [Constraint::Percentage(50), Constraint::Percentage(50)],
         )
         .block(
             Block::default()
                 .title("Audio information")
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
-                .dark_gray(),
+                .style(Style::new().fg(Color::Rgb(61, 172, 187)))
+                .padding(Padding::vertical(1)),
         );
         frame.render_widget(table, area);
     }
