@@ -118,7 +118,7 @@ impl App {
             sample_rate,
         );
 
-        let mut audio = AudioPlayer::new()?;
+        let audio = AudioPlayer::new()?;
         let mut list_state = ListState::default();
         if !tracks.is_empty() {
             list_state.select(Some(0));
@@ -144,9 +144,12 @@ impl App {
     fn remix(&mut self) {
         let before = self.audio.state();
 
-        let mix = Signal::mix(self.tracks.iter().map(|t| &t.signal), self.sample_rate);
+        self.mix = Signal::mix(
+            self.tracks.iter().filter(|t| t.enabled).map(|t| &t.signal),
+            self.sample_rate,
+        );
 
-        self.audio.load(&mix);
+        self.audio.load(&self.mix);
         self.audio.restore(before.position, before.playing);
         self.views.waveform.invalidate();
         self.views.spectrum.invalidate();
@@ -179,6 +182,7 @@ impl App {
         self.list_state.select(Some(self.tracks.len() - 1));
         self.remix();
     }
+
     fn toggle_selected(&mut self) {
         if let Some(t) = self
             .list_state
@@ -237,11 +241,20 @@ impl App {
         if key.kind != KeyEventKind::Press {
             return;
         }
+        if self.input.is_some() {
+            self.handle_input_key(key.code);
+            return;
+        }
         match key.code {
             KeyCode::Char('q') => self.running = false,
             KeyCode::Char(' ') => self.toggle_playback(),
             KeyCode::Char('s') => self.audio.stop(),
             KeyCode::Tab => self.view = self.view.next(),
+            KeyCode::Up | KeyCode::Char('k') => self.list_state.select_previous(),
+            KeyCode::Down | KeyCode::Char('j') => self.list_state.select_next(),
+            KeyCode::Enter | KeyCode::Char('e') => self.toggle_selected(),
+            KeyCode::Char('n') => self.input = Some(String::new()),
+            KeyCode::Char('d') | KeyCode::Delete => self.remove_selected(),
             _ => {} // view-specific keys
         }
     }
@@ -262,11 +275,11 @@ impl App {
             .block(Block::bordered().border_set(symbols::border::ROUNDED));
         frame.render_widget(tabs, tabs_area);
 
-        self.render_table(frame, side);
+        self.render_table(frame, top);
         self.render_tracks(frame, side);
 
         let block = self.view.block();
-        let inner = block.inner(main); // accounts for borders and padding
+        let inner = block.inner(main);
         frame.render_widget(block, main);
         match self.view {
             View::Waveform => self
@@ -288,18 +301,26 @@ impl App {
         let items = self.tracks.iter().map(|t| {
             let mark = if t.enabled { "[x]" } else { "[ ]" };
             let item = ListItem::new(format!("{mark} {}", t.name));
-            if t.enabled { item } else { item.dark_gray() }
+            if t.enabled {
+                item.bg(Color::DarkGray)
+            } else {
+                item.dark_gray()
+            }
         });
         let hint = match &self.input {
             Some(buf) => format!("Hz: {buf}_ (Enter/Esc)"),
             None => "n new  e on/off  d del".to_string(),
         };
-        let list = List::new(items).block(
-            Block::bordered()
-                .title("Signals")
-                .title_bottom(hint)
-                .border_set(symbols::border::ROUNDED),
-        );
+        let list = List::new(items)
+            .block(
+                Block::bordered()
+                    .title("Signals")
+                    .title_bottom(hint)
+                    .border_set(symbols::border::ROUNDED)
+                    .padding(Padding::horizontal(1)),
+            )
+            .highlight_style(Style::new().bold())
+            .highlight_symbol("> ");
         frame.render_stateful_widget(list, area, &mut self.list_state);
     }
     fn handle_input_key(&mut self, code: KeyCode) {
@@ -337,7 +358,7 @@ impl App {
                 .borders(Borders::ALL)
                 .border_set(symbols::border::ROUNDED)
                 .style(Style::new().fg(Color::Rgb(61, 172, 187)))
-                .padding(Padding::vertical(1)),
+                .padding(Padding::horizontal(1)),
         );
         frame.render_widget(table, area);
     }
