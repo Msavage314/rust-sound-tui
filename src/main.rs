@@ -3,9 +3,11 @@ pub mod maths;
 pub mod signal;
 pub mod wav;
 
+use rayon::vec;
+
 use crate::{
-    app::App,
-    maths::fourier::fft_signal,
+    app::{App, Track},
+    maths::fourier::{Bin, fft_signal},
     signal::Signal,
     wav::{BinaryReader, read_wav},
 };
@@ -19,9 +21,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to read wav file")
         .crop_seconds(0.0, 4.0);
 
-    let fft = fft_signal(&signal);
+    let _fft = fft_signal(&signal);
+    let a = Signal::sine(
+        Bin {
+            frequency: 440.0,
+            phase: 0.0,
+            amplitude: 0.1,
+        },
+        44100,
+        1.0,
+    );
+    let b = Signal::sine(
+        Bin {
+            frequency: 880.0,
+            phase: 0.0,
+            amplitude: 0.1,
+        },
+        44100,
+        1.0,
+    );
+    let a_track = Track {
+        name: "A".to_string(),
+        signal: a,
+        enabled: true,
+    };
+    let b_track = Track {
+        name: "B".to_string(),
+        signal: b,
+        enabled: true,
+    };
     //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let mut app = App::new(signal)?;
+    let mut app = App::new(vec![a_track, b_track])?;
+
     ratatui::run(|terminal| app.run(terminal))?;
 
     Ok(())

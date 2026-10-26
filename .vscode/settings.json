@@ -1,5 +1,5 @@
 {
-    "terminal.integrated.fontFamily": "JetBrains Mono",
+    "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font",
     "terminal.integrated.fontSize": 12,
     "terminal.integrated.lineHeight": 0,
     "terminal.integrated.fontWeight": "normal"

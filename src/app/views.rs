@@ -77,8 +77,7 @@ impl WaveformView {
             data: Vec::new(),
         }
     }
-    #[allow(dead_code)]
-    fn invalidate(&mut self) {
+    pub fn invalidate(&mut self) {
         self.cached_width = 0;
     }
     fn rebuild(&mut self, signal: &Signal, width: u16) {
