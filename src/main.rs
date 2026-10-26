@@ -19,9 +19,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("Failed to read wav file")
         .crop_seconds(0.0, 4.0);
 
-    let fft = fft_signal(&signal);
-    //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let app = App::new(Signal::sine(
+    let _fft = fft_signal(&signal);
+    let a = Signal::sine(
         Bin {
             frequency: 440.0,
             phase: 0.0,
@@ -29,8 +28,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         44100,
         1.0,
-    ))?;
-    // let mut app = App::new(signal)?;
+    );
+    let b = Signal::sine(
+        Bin {
+            frequency: 880.0,
+            phase: 0.0,
+            amplitude: 0.1,
+        },
+        44100,
+        1.0,
+    );
+    //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
+    let mut app = App::new(Signal::mix([&a, &b], 440))?;
+
     ratatui::run(|terminal| app.run(terminal))?;
 
     Ok(())

@@ -2,7 +2,7 @@
 
 use core::f64::consts::PI;
 
-use crate::maths::fourier::Bin;
+use crate::{maths::fourier::Bin, signal};
 
 /// A sound from a particular source. Contains a set of amplitude samples and the sampling rate
 ///
@@ -89,12 +89,39 @@ impl Signal {
         let n = (sample_rate as f64 * duration) as usize;
 
         let samples = (0..n)
-            .map(|n| bin.amplitude * (bin.frequency * (n as f64 + bin.phase)).sin())
+            .map(|n| {
+                bin.amplitude * (2.0 * PI * bin.frequency * n as f64 / sample_rate as f64).sin()
+            })
             .collect();
 
         return Signal {
             samples: samples,
             sample_rate: sample_rate,
         };
+    }
+    /// Mixes the a set of signals to create a new signal
+    pub fn mix<'a>(signals: impl IntoIterator<Item = &'a Signal>, fallback_rate: u32) -> Signal {
+        let signals: Vec<&Signal> = signals.into_iter().collect();
+        let Some(first) = signals.first() else {
+            return Signal {
+                samples: Vec::new(),
+                sample_rate: fallback_rate,
+            };
+        };
+        let len = signals.iter().map(|s| s.samples.len()).max().unwrap_or(0);
+        let mut samples = vec![0.0; len];
+        for s in &signals {
+            for (out, &x) in samples.iter_mut().zip(&s.samples) {
+                *out += x;
+            }
+        }
+        let peak = samples.iter().fold(0.0_f64, |m, x| m.max(x.abs()));
+        if peak > 1.0 {
+            samples.iter_mut().for_each(|x| *x /= peak);
+        };
+        Signal {
+            samples,
+            sample_rate: first.sample_rate,
+        }
     }
 }
