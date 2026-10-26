@@ -22,34 +22,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .crop_seconds(0.0, 4.0);
 
     let _fft = fft_signal(&signal);
-    let a = Signal::sine(
-        Bin {
-            frequency: 440.0,
-            phase: 0.0,
-            amplitude: 0.1,
-        },
-        44100,
-        1.0,
-    );
-    let b = Signal::sine(
-        Bin {
-            frequency: 880.0,
-            phase: 0.0,
-            amplitude: 0.1,
-        },
-        44100,
-        1.0,
-    );
-    let a_track = Track {
-        name: "A".to_string(),
-        signal: a,
-        enabled: true,
-    };
-    let b_track = Track {
-        name: "B".to_string(),
-        signal: b,
-        enabled: true,
-    };
+    let a = Signal::sine(Bin::new(440.0, 0.0, 0.5), 44100, 1.0);
+    let b = Signal::sine(Bin::new(880.0, 0.0, 0.5), 44100, 1.0);
+    let a_track = Track::new("A".to_string(), a);
+    let b_track = Track::new("B".to_string(), b);
     //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
     let mut app = App::new(vec![a_track, b_track])?;
 

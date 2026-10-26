@@ -115,6 +115,16 @@ pub struct Bin {
     pub amplitude: f64,
 }
 
+impl Bin {
+    pub fn new(frequency: f64, phase: f64, amplitude: f64) -> Self {
+        Self {
+            frequency,
+            phase,
+            amplitude,
+        }
+    }
+}
+
 /// Computes the Fast Fourier Transform (FFT) from a set of complex numbers, and returns a set
 /// of complex numbers giving sinusoids that can sum to make the input
 /// The length of the data must be a power of two
