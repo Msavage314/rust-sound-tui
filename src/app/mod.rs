@@ -299,7 +299,7 @@ impl App {
     }
     fn render_tracks(&mut self, frame: &mut Frame, area: Rect) {
         let items = self.tracks.iter().map(|t| {
-            let mark = if t.enabled { "[x]" } else { "[ ]" };
+            let mark = if t.enabled { " 󰥛 " } else { " 󰥛 " };
             let item = ListItem::new(format!("{mark} {}", t.name));
             if t.enabled {
                 item.bg(Color::DarkGray)
