@@ -10,7 +10,10 @@ use ratatui::{
 use crate::{
     Signal,
     app::PlaybackState,
-    maths::fourier::{fft_signal, stft},
+    maths::{
+        fourier::{fft_signal, stft},
+        utils::round_to_2_decimals,
+    },
 };
 
 /// represents the different views that the TUI app can provide
@@ -135,7 +138,14 @@ impl WaveformView {
         }
         let last = signal.samples.len().saturating_sub(1) as f64;
         let x = (playback.position.as_secs_f64() * signal.sample_rate as f64).clamp(0.0, last);
-
+        let max = signal
+            .samples
+            .iter()
+            .copied()
+            .map(|f| f.abs())
+            .reduce(f64::max)
+            .unwrap_or(1.0_f64);
+        let max = round_to_2_decimals(max);
         let waveform = Dataset::default()
             .marker(Marker::Braille)
             .graph_type(GraphType::Area)
@@ -161,8 +171,8 @@ impl WaveformView {
             .y_axis(
                 Axis::default()
                     .title("Amplitude")
-                    .bounds([-1.0, 1.0])
-                    .labels(["-1.0", "0", "1.0"])
+                    .bounds([-max, max])
+                    .labels([(-max).to_string(), max.to_string()])
                     .light_cyan(),
             );
         frame.render_widget(chart, area);

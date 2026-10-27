@@ -2,7 +2,7 @@
 
 use core::f64::consts::PI;
 
-use crate::{maths::fourier::Bin, signal};
+use crate::maths::fourier::Bin;
 
 /// A sound from a particular source. Contains a set of amplitude samples and the sampling rate
 ///
