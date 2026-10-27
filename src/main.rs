@@ -22,12 +22,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .crop_seconds(0.0, 4.0);
 
     let _fft = fft_signal(&signal);
-    let a = Signal::sine(Bin::new(440.0, 0.0, 0.5), 44100, 1.0);
-    let b = Signal::sine(Bin::new(880.0, 0.0, 0.5), 44100, 1.0);
-    let a_track = Track::new("A".to_string(), a);
-    let b_track = Track::new("B".to_string(), b);
+
     //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let mut app = App::new(vec![a_track, b_track])?;
+    let mut app = App::new(vec![Track::new("Piano C4".to_string(), signal)])?;
 
     ratatui::run(|terminal| app.run(terminal))?;
 

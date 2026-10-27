@@ -207,7 +207,7 @@ impl SpectrumView {
             .data(&self.data)
             .graph_type(GraphType::Bar)
             .marker(Marker::Braille)
-            .light_red();
+            .light_cyan();
 
         let chart = Chart::new(vec![data])
             .x_axis(
@@ -215,14 +215,14 @@ impl SpectrumView {
                     .title("Frequency (Hz)")
                     .bounds([0.0, self.max_freq])
                     .labels(["0".to_string(), format!("{:.0}", self.max_freq)])
-                    .light_red(),
+                    .light_cyan(),
             )
             .y_axis(
                 Axis::default()
                     .title("Amplitude")
                     .bounds([0.0, self.max_amp])
                     .labels(["0".to_string(), format!("{:.2}", self.max_amp)])
-                    .light_red(),
+                    .light_cyan(),
             );
         frame.render_widget(chart, area);
     }
