@@ -74,7 +74,7 @@ macro_rules! impl_scalar_ops {
         impl core::ops::Add<$t> for Complex {
             type Output = Complex;
             fn add(self, rhs: $t) -> Complex {
-                Complex {real: self.real + rhs as f64, imag: self.imag + rhs as f64}
+                Complex {real: self.real + rhs as f64, imag: self.imag}
             }
         }
         // 2 + z
@@ -94,7 +94,7 @@ macro_rules! impl_scalar_ops {
         impl core::ops::Sub<$t> for Complex {
             type Output = Complex;
             fn sub(self, rhs: $t) -> Complex {
-                Complex {real: self.real - rhs as f64, imag: self.imag - rhs as f64}
+                Complex {real: self.real - rhs as f64, imag: self.imag as f64}
             }
         }
         // 2 - z
@@ -180,8 +180,7 @@ impl core::ops::Mul<Complex> for Complex {
 
 impl core::ops::MulAssign<Complex> for Complex {
     fn mul_assign(&mut self, rhs: Complex) {
-        self.real *= rhs.real;
-        self.imag *= rhs.imag;
+        *self = (*self) * rhs;
     }
 }
 
