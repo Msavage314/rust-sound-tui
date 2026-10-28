@@ -153,7 +153,7 @@ impl WaveformView {
         let chart = Chart::new(vec![waveform, cursor])
             .x_axis(
                 Axis::default()
-                    .title("Sample")
+                    .title("Seconds")
                     .bounds([0.0, last])
                     .labels(["0".to_string(), signal.duration().to_string()])
                     .light_cyan(),
