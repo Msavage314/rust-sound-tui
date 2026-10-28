@@ -111,36 +111,6 @@ impl WaveformView {
                 self.data.push((x, low));
             }
         }
-
-        let buckets = 4 * (width as usize).saturating_sub(10).max(1).min(sample_count);
-        let bucket_size = sample_count.div_ceil(buckets);
-
-        for start in (0..sample_count).step_by(bucket_size) {
-            let end = (start + bucket_size).min(sample_count);
-            let samples = &signal.samples[start..end];
-
-            // find the minimum amplitude for this section
-            let (min_offset, &min_value) = samples
-                .iter()
-                .enumerate()
-                .min_by(|a, b| a.1.total_cmp(b.1))
-                .unwrap();
-            let (max_offset, &max_value) = samples
-                .iter()
-                .enumerate()
-                .max_by(|a, b| a.1.total_cmp(b.1))
-                .unwrap();
-            // Keep the extrema in chronological order.
-            if min_offset < max_offset {
-                self.data.push(((start + min_offset) as f64, min_value));
-                self.data.push(((start + max_offset) as f64, max_value));
-            } else if max_offset < min_offset {
-                self.data.push(((start + max_offset) as f64, max_value));
-                self.data.push(((start + min_offset) as f64, min_value));
-            } else {
-                self.data.push(((start + min_offset) as f64, min_value));
-            }
-        }
     }
     pub fn render(
         &mut self,

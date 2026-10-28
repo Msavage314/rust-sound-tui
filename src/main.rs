@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?);
     let signal = read_wav(&mut reader)
         .expect("Failed to read wav file")
-        .crop_seconds(0.0, 1.0);
+        .crop_seconds(0.0, 120.0);
 
     let _fft = fft_signal(&signal);
 
