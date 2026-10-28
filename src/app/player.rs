@@ -13,9 +13,14 @@ impl AudioPlayer {
     /// Constructs a new AudioPlayer with the default sink
     /// and a new player object
     pub fn new() -> Result<Self, Box<dyn Error>> {
-        let _sink = rodio::DeviceSinkBuilder::open_default_sink()?;
-        let player = Player::connect_new(_sink.mixer());
-        return Ok(Self { _sink, player });
+        let sink = rodio::DeviceSinkBuilder::from_default_device()?
+            .with_buffer_size(cpal::BufferSize::Fixed(512))
+            .open_stream()?;
+        let player = Player::connect_new(sink.mixer());
+        return Ok(Self {
+            _sink: sink,
+            player,
+        });
     }
     /// Loads a signal into the player and adds it to the source
     pub fn load(&mut self, signal: &Signal) {

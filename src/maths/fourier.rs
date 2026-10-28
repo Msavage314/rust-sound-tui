@@ -99,8 +99,8 @@
 //! - Clean up above
 //! - Optimise more
 use crate::{
-    Signal,
     maths::utils::{Complex, I},
+    signal::Signal,
 };
 use core::f64::consts::TAU;
 use rayon::prelude::*;

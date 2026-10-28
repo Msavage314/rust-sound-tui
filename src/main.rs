@@ -3,12 +3,9 @@ pub mod maths;
 pub mod signal;
 pub mod wav;
 
-use rayon::vec;
-
 use crate::{
     app::{App, Track},
-    maths::fourier::{Bin, fft_signal},
-    signal::Signal,
+    maths::fourier::fft_signal,
     wav::{BinaryReader, read_wav},
 };
 use std::fs::File;
@@ -19,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?);
     let signal = read_wav(&mut reader)
         .expect("Failed to read wav file")
-        .crop_seconds(0.0, 4.0);
+        .crop_seconds(0.0, 1.0);
 
     let _fft = fft_signal(&signal);
 

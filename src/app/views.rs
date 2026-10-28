@@ -1,19 +1,18 @@
 use ratatui::{
     prelude::{
         Color, Constraint, Frame, Layout, Rect, Style, Stylize,
-        style::Styled,
         symbols::{self, Marker},
     },
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Padding, Paragraph},
+    widgets::{Axis, Block, Chart, Dataset, GraphType, Padding, Paragraph},
 };
 
 use crate::{
-    Signal,
     app::PlaybackState,
     maths::{
         fourier::{fft_signal, stft},
         utils::round_to_2_decimals,
     },
+    signal::Signal,
 };
 
 /// represents the different views that the TUI app can provide
@@ -86,13 +85,34 @@ impl WaveformView {
     fn rebuild(&mut self, signal: &Signal, width: u16) {
         self.cached_width = width;
         self.data.clear();
+
         let sample_count = signal.samples.len();
 
         if sample_count == 0 {
             return;
         }
+        // 2 Braille dots per cell
+        let columns = (width as usize * 2).clamp(1, sample_count);
 
-        let buckets = (width as usize).saturating_sub(10).max(1).min(sample_count);
+        for col in 0..columns {
+            let start = col * sample_count / columns;
+            let end = ((col + 1) * sample_count / columns).max(start + 1);
+            let (mut low, mut high) = (f64::INFINITY, f64::NEG_INFINITY);
+            for &s in &signal.samples[start..end] {
+                low = low.min(s);
+                high = high.max(s);
+            }
+            let x = (start + end) as f64 / 2.0;
+            if col % 2 == 0 {
+                self.data.push((x, low));
+                self.data.push((x, high));
+            } else {
+                self.data.push((x, high));
+                self.data.push((x, low));
+            }
+        }
+
+        let buckets = 4 * (width as usize).saturating_sub(10).max(1).min(sample_count);
         let bucket_size = sample_count.div_ceil(buckets);
 
         for start in (0..sample_count).step_by(bucket_size) {
@@ -148,7 +168,7 @@ impl WaveformView {
         let max = round_to_2_decimals(max);
         let waveform = Dataset::default()
             .marker(Marker::Braille)
-            .graph_type(GraphType::Area)
+            .graph_type(GraphType::Line)
             .data(&self.data)
             .light_cyan();
 

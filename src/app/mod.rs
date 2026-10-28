@@ -18,12 +18,12 @@ use ratatui::{
 };
 
 use crate::{
-    Signal,
     app::{
         player::AudioPlayer,
         views::{SpectrogramView, SpectrumView, View, Views, WaveformView},
     },
     maths::fourier::Bin,
+    signal::Signal,
 };
 
 pub struct PlaybackState {
@@ -32,7 +32,7 @@ pub struct PlaybackState {
     pub finished: bool,
 }
 
-const FRAME: Duration = Duration::from_millis(33); // ~30 fps
+const FRAME: Duration = Duration::from_millis(17); // ~30 fps
 
 pub struct Track {
     pub name: String,
@@ -183,7 +183,6 @@ impl App {
                     }
                 }
             }
-            //self.handle_events()?;
         }
         return Ok(());
     }
