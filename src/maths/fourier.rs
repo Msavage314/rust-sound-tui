@@ -99,8 +99,8 @@
 //! - Clean up above
 //! - Optimise more
 use crate::{
-    Signal,
     maths::utils::{Complex, I},
+    signal::Signal,
 };
 use core::f64::consts::TAU;
 use rayon::prelude::*;
@@ -113,6 +113,16 @@ pub struct Bin {
     pub frequency: f64,
     pub phase: f64,
     pub amplitude: f64,
+}
+
+impl Bin {
+    pub fn new(frequency: f64, phase: f64, amplitude: f64) -> Self {
+        Self {
+            frequency,
+            phase,
+            amplitude,
+        }
+    }
 }
 
 /// Computes the Fast Fourier Transform (FFT) from a set of complex numbers, and returns a set
@@ -188,6 +198,34 @@ pub fn fft_signal(signal: &Signal) -> Vec<Bin> {
                 phase,
                 amplitude,
             }
+        })
+        .collect()
+}
+
+/// STFFT ( short time fast fourier transform)
+pub fn stft(signal: &Signal, window: usize, hop: usize) -> Vec<Vec<f64>> {
+    assert!(window.is_power_of_two());
+    let samples = &signal.samples;
+
+    if samples.len() < window {
+        return Vec::new();
+    }
+    // Hann window: stops the hard frame edges from smearing energy across bins
+    let hann: Vec<f64> = (0..window)
+        .map(|i| 0.5 * (1.0 - (TAU * i as f64 / (window - 1) as f64).cos()))
+        .collect();
+
+    let starts: Vec<usize> = (0..=samples.len() - window).step_by(hop).collect();
+
+    starts
+        .into_par_iter()
+        .map(|start| {
+            let frame: Vec<Complex> = samples[start..start + window]
+                .iter()
+                .zip(&hann)
+                .map(|(s, w)| Complex::new(s * w, 0.0))
+                .collect();
+            fft(&frame)[..=window / 2].iter().map(|c| c.abs()).collect()
         })
         .collect()
 }

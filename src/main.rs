@@ -4,9 +4,8 @@ pub mod signal;
 pub mod wav;
 
 use crate::{
-    app::App,
+    app::{App, Track},
     maths::fourier::fft_signal,
-    signal::Signal,
     wav::{BinaryReader, read_wav},
 };
 use std::fs::File;
@@ -17,11 +16,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?);
     let signal = read_wav(&mut reader)
         .expect("Failed to read wav file")
-        .crop_seconds(0.0, 4.0);
+        .crop_seconds(0.0, 120.0);
 
-    let fft = fft_signal(&signal);
-    let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let mut app = App::new(new)?;
+    let _fft = fft_signal(&signal);
+
+    //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
+    let mut app = App::new(vec![Track::new("Piano C4".to_string(), signal)])?;
+
     ratatui::run(|terminal| app.run(terminal))?;
 
     Ok(())

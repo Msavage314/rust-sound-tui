@@ -1,9 +1,12 @@
-//! Complex numbers
+//! Complex numbers and rounding
 //!
 //!
 //! Examples
 //!
 
+pub fn round_to_2_decimals(x: f64) -> f64 {
+    (x * 100.0).round() / 100.0
+}
 // Stores a complex number consisting of a real and an imaginary component
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Complex {
@@ -31,6 +34,7 @@ impl Complex {
         return self.imag.atan2(self.real);
     }
 }
+
 macro_rules! impl_scalar_ops {
     ($($t:ty),* $(,)?) => { $(
         // z * 2
