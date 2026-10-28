@@ -8,7 +8,7 @@ use ratatui::{
     crossterm::event::{
         self, Event,
         KeyCode::{self},
-        KeyEventKind,
+        KeyEventKind, KeyModifiers,
     },
     prelude::{
         Color, Constraint, Frame, Layout, Rect, Style, Stylize,
@@ -31,7 +31,8 @@ pub struct PlaybackState {
     pub playing: bool,
     pub finished: bool,
 }
-
+const SEEK_STEP: f64 = 2.0;
+const SEEK_STEP_LARGE: f64 = 10.0;
 const FRAME: Duration = Duration::from_millis(17); // ~30 fps
 
 pub struct Track {
@@ -90,7 +91,12 @@ impl App {
             },
         })
     }
-
+    fn seek_by(&mut self, delta: f64) {
+        if self.audio.state().finished {
+            self.audio.load(&self.mix); // the source was consumed; reload first
+        }
+        self.audio.seek_by(delta, self.mix.duration());
+    }
     /// Rebuild the mixed signal from all enabled tracks
     fn remix(&mut self) {
         let before = self.audio.state();
@@ -195,7 +201,15 @@ impl App {
             self.handle_input_key(key.code);
             return;
         }
+        let step = if key.modifiers.contains(KeyModifiers::SHIFT) {
+            SEEK_STEP_LARGE
+        } else {
+            SEEK_STEP
+        };
         match key.code {
+            KeyCode::Left => self.seek_by(-step),
+            KeyCode::Right => self.seek_by(step),
+            KeyCode::Home => self.seek_by(f64::NEG_INFINITY),
             KeyCode::Char('q') => self.running = false,
             KeyCode::Char(' ') => self.toggle_playback(),
             KeyCode::Char('s') => self.audio.stop(),

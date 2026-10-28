@@ -50,6 +50,12 @@ impl AudioPlayer {
     pub fn seek(&mut self, to: Duration) {
         self.player.try_seek(to).expect("Failed to seek");
     }
+    pub fn seek_by(&mut self, delta: f64, total: f64) {
+        let current = self.player.get_pos().as_secs_f64();
+        let target = (current + delta).clamp(0.0, (total - 0.05).max(0.0));
+        // ignore the result if it fails to seek
+        let _ = self.player.try_seek(Duration::from_secs_f64(target));
+    }
     pub fn state(&self) -> PlaybackState {
         let finished = self.player.empty();
         PlaybackState {
