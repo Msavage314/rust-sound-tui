@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _fft = fft_signal(&signal);
 
     //let new = Signal::from_frequencies(&fft, signal.sample_rate, signal.duration());
-    let mut app = App::new(vec![Track::new("Piano C4".to_string(), signal)])?;
+    let mut app = App::new(vec![Track::new("Example".to_string(), signal)])?;
 
     ratatui::run(|terminal| app.run(terminal))?;
 
