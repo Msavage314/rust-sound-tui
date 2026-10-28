@@ -177,13 +177,15 @@ impl App {
         }
     }
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
-        while self.running {
+        'mainloop: loop {
             let playback = self.audio.state();
             terminal.draw(|f| self.render(f, &playback))?;
 
             if event::poll(FRAME)? {
                 'eventloop: loop {
-                    self.handle_event(event::read()?);
+                    if self.handle_event(event::read()?) {
+                        break 'mainloop;
+                    }
                     if !event::poll(Duration::ZERO)? {
                         break 'eventloop;
                     }
@@ -192,14 +194,15 @@ impl App {
         }
         return Ok(());
     }
-    fn handle_event(&mut self, event: Event) {
-        let Event::Key(key) = event else { return }; // Resize etc. just trigger a redraw
+    // Return whether to quit
+    fn handle_event(&mut self, event: Event) -> bool {
+        let Event::Key(key) = event else { return false }; // Resize etc. just trigger a redraw
         if key.kind != KeyEventKind::Press {
-            return;
+            return false;
         }
         if self.input.is_some() {
             self.handle_input_key(key.code);
-            return;
+            return false;
         }
         let step = if key.modifiers.contains(KeyModifiers::SHIFT) {
             SEEK_STEP_LARGE
@@ -210,7 +213,7 @@ impl App {
             KeyCode::Left => self.seek_by(-step),
             KeyCode::Right => self.seek_by(step),
             KeyCode::Home => self.seek_by(f64::NEG_INFINITY),
-            KeyCode::Char('q') => self.running = false,
+            KeyCode::Char('q') => return true,
             KeyCode::Char(' ') => self.toggle_playback(),
             KeyCode::Char('s') => self.audio.stop(),
             KeyCode::Tab => self.view = self.view.next(),
@@ -221,6 +224,7 @@ impl App {
             KeyCode::Char('d') | KeyCode::Delete => self.remove_selected(),
             _ => {} // view-specific keys
         }
+        return false;
     }
 
     fn render(&mut self, frame: &mut Frame, playback: &PlaybackState) {
